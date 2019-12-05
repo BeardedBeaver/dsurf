@@ -6,7 +6,7 @@
 		"mir": "~>3.2.0",
 	},
 	"copyright": "Copyright © 2019, BeardedBeaver",
-	"description": "This package provides tools to work with different kinds of surfaces",
+	"description": "Library for D programming language that provides tools to work with surfaces (2D grids)",
 	"license": "MIT",
 	"name": "dsurf"
 }

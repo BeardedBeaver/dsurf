@@ -12,6 +12,9 @@ import mir.ndslice;
 
 /***********************************
 * Class CartesianSurface represents regular rectangular-cell surface
+* Authors: Dmitriy Linev
+* License: MIT
+* Date: 2019-2020
 */
 class CartesianSurface  {
 
@@ -30,6 +33,17 @@ class CartesianSurface  {
     /**
     * Sets surface header and allocates memory for height map
     */
+
+    /** 
+     * Sets surface header and allocates surface memory
+     * Params:
+     *   nx = number of nodes along X coordinate
+     *   ny = number of nodes along Y coordinate
+     *   xOrigin = surface origin X coordinate
+     *   yOrigin = surface origin Y coordinate
+     *   dx = surface increment (cell size) along X coordinate
+     *   dy = surface increment (cell size) along Y coordinate
+     */
     void setHeader(int nx, int ny, double xOrigin, double yOrigin, double dx, double dy) pure  {
         m_nx = nx;
         m_ny = ny;
@@ -98,10 +112,10 @@ class CartesianSurface  {
     /// Returns Y coordinate of surface origin
     @property pure double yOrigin() const @safe @nogc { return m_yOrigin; }
 
-    /// Returns surface increment along X axis
+    /// Returns surface increment (cell size) along X axis
     @property pure double dx() const @safe @nogc { return m_dx; }
 
-    /// Returns surface increment along Y axis
+    /// Returns surface increment (cell size) along Y axis
     @property pure double dy() const @safe @nogc { return m_dy; }
 
     /// Returns number of nodes along X axis 
@@ -113,7 +127,7 @@ class CartesianSurface  {
 
     /**
     Method to access height map.
-    Returns: Chunks of double containing surface's height map
+    Returns: `Slice!(double*, 2)` containing surface's height map with dimensions nx * ny
     Example:
     ---
     for (int i = 0; i < surface.nx; i++) {
@@ -125,14 +139,14 @@ class CartesianSurface  {
     */ 
     @property Slice!(double*, 2) z() { return m_z; }  
 
-    /// Returns true if point with given coordinates is inside surface boundaries, otherwise returns false
+    /// Returns `true` if point with given coordinates is inside surface boundaries, otherwise returns `false`
     bool isInsideSurface(double x, double y) const @nogc {
         if (x < m_xOrigin || y < m_yOrigin || x > m_xOrigin + m_dx * (m_nx - 1) || y > m_yOrigin + m_dy * (m_ny - 1))
             return false;
         return true;
     }
 
-    /// Returns cell index from a given X coordinate. Maximum number is nx - 1
+    /// Returns cell index from a given `X` coordinate. Maximum number is `nx - 1`
     /// Returns -1 if a given coordinate is outside the surface
     int cellXIndex(double x) const {
         if (x < m_xOrigin || x > m_xOrigin + m_dx * (m_nx - 1))
@@ -140,8 +154,8 @@ class CartesianSurface  {
         return  ((x - m_xOrigin) / m_dx).to!int;
     }
 
-    /// Returns cell index from a given Y coordinate. Maximum number is ny - 1
-    /// Returns -1 if a given coordinate is outside the surface
+    /// Returns cell index from a given `Y` coordinate. Maximum number is `ny - 1`
+    /// Returns `-1` if a given coordinate is outside the surface
     int cellYIndex(double y) const {
         if (y < m_yOrigin || y > m_yOrigin + m_dy * (m_ny - 1))
             return -1;   //TODO throw? 
@@ -293,6 +307,13 @@ private:
     int m_ny;
 }
 
+/** 
+ * Loads `surface` from file trying to detect format automatically
+ * Params:
+ *   surface = `CartesianSurface` to load data to
+ *   fileName = Path to file for loading
+ * Currently supported formats are CPS3 ASCII and ZMAP+
+ */
 void loadFromFile(CartesianSurface surface, string fileName) {
     immutable auto format = surfaceFormat(fileName);
     if (format == "cps")
@@ -303,6 +324,12 @@ void loadFromFile(CartesianSurface surface, string fileName) {
         throw new FileException("Unknown surface format");
 }
 
+/** 
+ * Loads `surface` from file of CPS3 ASCII format
+ * Params:
+ *   surface = `CartesianSurface` to load data to
+ *   fileName = Path to file for loading
+ */
 void loadFromCps3Ascii(CartesianSurface surface, string fileName) {
     File file = File(fileName, "r");
     bool readingHeader = true;
@@ -340,7 +367,7 @@ void loadFromCps3Ascii(CartesianSurface surface, string fileName) {
         }
         else {
             if (i < 0 || j < 0)
-                throw new StringException("Invalid index");  //TODO add some information
+                throw new Exception("Invalid index");  //TODO add some information
             auto words = line.split();
             if (words[0].startsWith("->"))  //petrel specific
                 continue;
@@ -366,47 +393,12 @@ void loadFromCps3Ascii(CartesianSurface surface, string fileName) {
     file.close();
 }
 
-void saveToFile(CartesianSurface surface, string fileName, string format) {
-        saveToCps3Ascii(surface, fileName);
-    if (format.startsWith("cps".toLower)) 
-        saveToCps3Ascii(surface, fileName);
-    else 
-        throw new FileException(format ~ " cartesian surface format is not supported for export");
-}
-
-void saveToCps3Ascii(CartesianSurface surface, string fileName) {
-    File file = File(fileName, "w");
-    immutable double blank = 1e30;
-    file.writeln("FSASCI 0 1 COMPUTED 0 ", blank);
-    file.writeln("FSATTR 0 0");
-    file.writeln("FSLIMI ", 
-                surface.m_xOrigin, " ", 
-                surface.m_xOrigin + (surface.m_nx) * surface.m_dx, " ", 
-                surface.m_yOrigin, " ", 
-                surface.m_yOrigin + (surface.m_ny) * surface.m_dy, " ", 
-                surface.m_z[surface.m_z.minIndex], " ", 
-                surface.m_z[surface.m_z.maxIndex]);
-    file.writeln("FSNROW ", surface.m_ny, " ", surface.m_nx);
-    file.writeln("FSXINC ", surface.m_dx, " ", surface.m_dy);
-    int n = 0;
-    for (int i = 0; i < surface.nx; i++) {
-        for (int j = surface.ny - 1; j >= 0; j--) {
-            if (isNaN(surface.z[i][j]))
-                file.write(blank);
-            else
-                file.write(surface.z[i][j]);
-            n++;
-            if (n > 5) {
-                n = 0;
-                file.write("\n");
-            }
-            else {
-                file.write(" ");
-            }
-        }
-    }
-}
-
+/** 
+ * Loads `surface` from file of ZMap+ ASCII format
+ * Params:
+ *   surface = `CartesianSurface` to load data to
+ *   fileName = Path to file for loading
+ */
 void loadFromZmap(CartesianSurface surface, string fileName) {
     File file = File(fileName, "r");
     bool readingHeader = true;
@@ -453,7 +445,7 @@ void loadFromZmap(CartesianSurface surface, string fileName) {
         }
         else {
             if (i < 0 || j < 0)
-                throw new StringException("Invalid index");  //TODO add some information
+                throw new Exception("Invalid index");  //TODO add some information
             auto words = line.split();
             if (words.empty)
                 continue;
@@ -479,6 +471,63 @@ void loadFromZmap(CartesianSurface surface, string fileName) {
         }
     }
 }
+
+
+/** 
+ * Saves `surface` to file using specified `format`
+ * Params:
+ *   surface = surface to save
+ *   fileName = path to output file
+ *   format = format to save surface to. Currently supported formats for export are: CPS3 ASCII
+ */
+void saveToFile(CartesianSurface surface, string fileName, string format) {
+        saveToCps3Ascii(surface, fileName);
+    if (format.startsWith("cps".toLower)) 
+        saveToCps3Ascii(surface, fileName);
+    else 
+        throw new FileException(format ~ " cartesian surface format is not supported for export");
+}
+
+/** 
+ * Saves `surface` to file using CPS3 ASCII format
+ * Params:
+ *   surface = surface to save
+ *   fileName = path to output file
+ */
+void saveToCps3Ascii(CartesianSurface surface, string fileName) {
+    File file = File(fileName, "w");
+    immutable double blank = 1e30;
+    file.writeln("FSASCI 0 1 COMPUTED 0 ", blank);
+    file.writeln("FSATTR 0 0");
+    file.writeln("FSLIMI ", 
+                surface.m_xOrigin, " ", 
+                surface.m_xOrigin + (surface.m_nx) * surface.m_dx, " ", 
+                surface.m_yOrigin, " ", 
+                surface.m_yOrigin + (surface.m_ny) * surface.m_dy, " ", 
+                surface.m_z[surface.m_z.minIndex], " ", 
+                surface.m_z[surface.m_z.maxIndex]);
+    file.writeln("FSNROW ", surface.m_ny, " ", surface.m_nx);
+    file.writeln("FSXINC ", surface.m_dx, " ", surface.m_dy);
+    int n = 0;
+    for (int i = 0; i < surface.nx; i++) {
+        for (int j = surface.ny - 1; j >= 0; j--) {
+            if (isNaN(surface.z[i][j]))
+                file.write(blank);
+            else
+                file.write(surface.z[i][j]);
+            n++;
+            if (n > 5) {
+                n = 0;
+                file.write("\n");
+            }
+            else {
+                file.write(" ");
+            }
+        }
+    }
+}
+
+
 
 unittest {
     CartesianSurface surface = new CartesianSurface;
@@ -524,6 +573,13 @@ unittest {
     assert(surface.z[$ - 1][$ - 1] == 15);
 }
 
+
+/** 
+ * Tries to detect surface format
+ * Params:
+ *   fileName = 
+ * Returns: string containing surface format. `cps` for CPS3 ASCII; 'zmap' for ZMAP+ ASCII; 'unknown' if format hasn't been detected.
+ */
 string surfaceFormat(string fileName) {
     File file = File(fileName, "r");
     string format = "unknown";
@@ -564,7 +620,7 @@ unittest {
 }
 
 /**
-* Samples to surface using height map from the given source surface
+* Samples height map to `surface` using height map from the given `source`
 */
 void sampleFromSurface(CartesianSurface surface, CartesianSurface source) {
     for (int i = 0; i < surface.nx; i++) {
@@ -574,27 +630,32 @@ void sampleFromSurface(CartesianSurface surface, CartesianSurface source) {
     }
 }
 
-
+/** 
+ * Translates the given surface
+ * Params:
+ *   surface = surface to translate
+ *   dx = translation value along X direction
+ *   dy = translation value along Y direction
+ * Returns: translated surface for more convenient call chaining
+ */
 CartesianSurface translate(CartesianSurface surface, double dx, double dy) {
     surface.m_xOrigin += dx;
     surface.m_yOrigin += dy;
     return surface;
 }
 
+/** 
+ * Scales the given surface around it's origin point
+ * Params:
+ *   surface = surface to scale
+ *   xf = scale factor along X direction
+ *   xf = scale factor value along Y direction
+ * Returns: translated surface for more convenient call chaining
+ */
 CartesianSurface scale(CartesianSurface surface, double xf, double yf) {  //scales around origin point
     //TODO filter negative factors
     surface.m_dx *= xf;
     surface.m_dy *= yf;
-    return surface;
-}
-
-CartesianSurface add(CartesianSurface surface, double value) {
-    surface.m_z[] += value;
-    return surface;
-}
-
-CartesianSurface multiply(CartesianSurface surface, double value) {
-    surface.m_z[] *= value;
     return surface;
 }
 

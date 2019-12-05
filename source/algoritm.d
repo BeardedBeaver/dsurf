@@ -7,6 +7,14 @@ import std.parallelism;
 
 import dsurf.cartesian;
 
+/***********************************
+* Set of algoritms to work with cartesian surfaces
+* Class CartesianSurface represents regular rectangular-cell surface
+* Authors: Dmitriy Linev
+* License: MIT
+* Date: 2019-2020
+*/
+
 /// Returns surface gradient along X axis in the node with index i and j
 double gX(CartesianSurface surface, int i, int j) {
     if (i == 0)

@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/dsurf
+dsurf.so
+dsurf.dylib
+dsurf.dll
+dsurf.a
+dsurf.lib
+dsurf-test-*
+*.exe
+*.o
+*.obj
+*.lst

@@ -1,0 +1,12 @@
+{
+	"authors": [
+		"BeardedBeaver"
+	],
+	"dependencies": {
+		"mir": "~>3.2.0",
+	},
+	"copyright": "Copyright © 2019, BeardedBeaver",
+	"description": "This package provides tools to work with different kinds of surfaces",
+	"license": "MIT",
+	"name": "dsurf"
+}

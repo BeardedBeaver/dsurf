@@ -1,12 +1,20 @@
 # dsurf
-=======
 
 Library for D programming language that provides tools to work with surfaces (2D grids)
 -----------
 
+Simple library for D to deal with surfaces (2D grids) built on top of [mir](http://mir-algorithm.libmir.org). Regular cartesian-cell 2D grids currently are supported. 
+
+## Information
+
+Documentation is available [here](https://dsurf.dpldocs.info/dsurf.html) 
+
+Author: Dmitriy Linev
+
+License: MIT
+
 ## Features
 
-  - Regular cartesian 2D grids are currently suported 
   - Import 2D grids from popular formats
   - Perform arithmetic calculations with 2D grids
   - Export to popular formats to be able to open it in special software (like Golden Software Surfer or Schlumberger Petrel)
@@ -15,18 +23,13 @@ Library for D programming language that provides tools to work with surfaces (2D
 
   - CPS-3 ASCII
   - ZMap+
+  - IRAP Classic ASCII (aka ROXAR text)
 
 ## Supported export formats
 
   - CPS-3 ASCII
 
-[Documentation](https://dsurf.dpldocs.info/dsurf.html) 
-
-Author: Dmitriy Linev
-
-License: MIT
-
-Example:
+## Example
 
 ```D
 auto surface = new CartesianSurface;
@@ -49,3 +52,7 @@ surface.saveToFile("./data/calculated.cps", "cps");
 |---------------|--------------------------------|
 | `./source`    | Source code.                   |
 | `./test`      | Unittest data.                 |
+
+## Installation
+
+dsurf is available in dub. If you're using dub run `dub add dsurf` in your project folder and dub will add dependency and fetch the latest version.

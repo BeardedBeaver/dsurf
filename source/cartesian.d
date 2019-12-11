@@ -30,10 +30,6 @@ class CartesianSurface  {
         m_ny = 0;
     }
 
-    /**
-    * Sets surface header and allocates memory for height map
-    */
-
     /** 
      * Sets surface header and allocates surface memory
      * Params:
@@ -393,6 +389,51 @@ void loadFromCps3Ascii(CartesianSurface surface, string fileName) {
     file.close();
 }
 
+unittest {
+    CartesianSurface surface = new CartesianSurface;
+    surface.loadFromCps3Ascii("./test/test_pet_rect.cps");
+    assert(surface.nx == 5);
+    assert(surface.ny == 3);
+    assert(surface.dx == 250);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 1);
+    assert(surface.z[$ - 1][$ - 1] == 15);
+
+    surface.loadFromCps3Ascii("./test/test_pet_sq.cps");
+    assert(surface.nx == 3);
+    assert(surface.ny == 3);
+    assert(surface.dx == 500);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 0);
+    assert(surface.z[$ - 1][$ - 1] == 8);
+    //TODO test blank values
+
+    surface.loadFromCps3Ascii("./test/test_rms_sq.cps");
+    assert(surface.nx == 3);
+    assert(surface.ny == 3);
+    assert(surface.dx == 500);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 0);
+    assert(surface.z[$ - 1][$ - 1] == 8);
+
+    surface.loadFromCps3Ascii("./test/test_rms_rect.cps");
+    assert(surface.nx == 5);
+    assert(surface.ny == 3);
+    assert(surface.dx == 250);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 1);
+    assert(surface.z[$ - 1][$ - 1] == 15);
+}
+
+
 /** 
  * Loads `surface` from file of ZMap+ ASCII format
  * Params:
@@ -404,9 +445,9 @@ void loadFromZmap(CartesianSurface surface, string fileName) {
     bool readingHeader = true;
     int i = -1;
     int j = -1;
-    double xOrigin = -1, yOrigin = -1;
-    double xMax = -1, yMax = -1;
-    double dx = -1, dy = -1;
+    double xOrigin = double.nan, yOrigin = double.nan;
+    double xMax = double.nan, yMax = double.nan;
+    double dx = double.nan, dy = double.nan;
     int nx = -1, ny = -1;
     double blank = double.nan;
     while(!file.eof()) {
@@ -428,7 +469,7 @@ void loadFromZmap(CartesianSurface surface, string fileName) {
                 xMax = words[3].to!double;
                 yMax = words[5].to!double;
             }
-            else if (dx < 0) {
+            else if (isNaN(dx)) {
                 dx = words[0].to!double;
                 dy = words[1].to!double;
                 if (approxEqual(0.0, dx, 0.0) || approxEqual(0.0, dy, 0.0)) {
@@ -472,6 +513,170 @@ void loadFromZmap(CartesianSurface surface, string fileName) {
     }
 }
 
+unittest {
+    CartesianSurface surface = new CartesianSurface;
+    surface.loadFromZmap("./test/test_pet_rect.zmap");
+    assert(surface.nx == 5);
+    assert(surface.ny == 3);
+    assert(surface.dx == 250);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 1);
+    assert(surface.z[$ - 1][$ - 1] == 15);
+
+    //TODO test_pet_rect_blank.zmap
+    surface.loadFromZmap("./test/test_pet_sq.zmap");
+    assert(surface.nx == 3);
+    assert(surface.ny == 3);
+    assert(surface.dx == 500);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 0);
+    assert(surface.z[$ - 1][$ - 1] == 8);
+
+    surface.loadFromZmap("./test/test_rms_sq.zmap");
+    assert(surface.nx == 3);
+    assert(surface.ny == 3);
+    assert(surface.dx == 500);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 0);
+    assert(surface.z[$ - 1][$ - 1] == 8);
+
+    surface.loadFromZmap("./test/test_rms_rect.zmap");
+    assert(surface.nx == 5);
+    assert(surface.ny == 3);
+    assert(surface.dx == 250);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 1);
+    assert(surface.z[$ - 1][$ - 1] == 15);
+}
+
+/** 
+ * Loads `surface` from file of IRAP Classic ASCII format (aka ROXAR text)
+ * Params:
+ *   surface = `CartesianSurface` to load data to
+ *   fileName = Path to file for loading
+ */
+void loadFromIrapClassicAscii(CartesianSurface surface, string fileName) {
+    File file = File(fileName, "r");
+    bool readingHeader = true;
+    int i = -1;
+    int j = -1;
+    double xOrigin = double.nan, yOrigin = double.nan;
+    double xMax = double.nan, yMax = double.nan;
+    double dx = double.nan, dy = double.nan;
+    int nx = -1, ny = -1;
+    immutable double blank = 9_999_900;
+    while(!file.eof()) {
+        string line = file.readln().chomp().replace("\"", "");
+        auto words = line.split();
+        if (readingHeader) {
+            if (isNaN(dx)) {
+                if (words.length < 4)
+                    throw new Exception("Invalid header, line 1: " ~ line);
+                ny = words[1].to!int;
+                dx = words[2].to!double;
+                dy = words[3].to!double;
+            }
+            else if (isNaN(xOrigin)) {
+                if (words.length < 4)
+                    throw new Exception("Invalid header, line 2: " ~ line);
+                xOrigin = words[0].to!double;
+                xMax = words[1].to!double;
+                yOrigin = words[2].to!double;
+                yMax = words[3].to!double;
+            }
+            else if (nx < 0) {
+                nx = words[0].to!int;
+            }
+            else {
+                surface.setHeader(nx, ny, xOrigin, yOrigin, dx, dy);
+                readingHeader = false;
+                i = 0;
+                j = 0;
+            }
+        }
+        else {
+            if (i < 0 || j < 0)
+                throw new Exception("Invalid index");  //TODO add some information
+            if (words.empty)
+                continue;
+            if (words[0].startsWith("+"))  //RMS specific
+                continue;
+            foreach (word; words) {
+                double value = 0;
+                try
+                    value = to!double(word);
+                catch (ConvException e)
+                    value = double.nan;
+                if (value == blank)
+                    surface.z[i][j] = double.nan;
+                else
+                    surface.z[i][j] = value;
+                
+                i++;
+                if (i >= surface.nx) {
+                    j++;
+                    i = 0;
+                }
+            }
+        }
+    }
+}
+
+unittest {
+    CartesianSurface surface = new CartesianSurface;
+    surface.loadFromIrapClassicAscii("./test/test_pet_rect_blank.irap");
+    assert(surface.nx == 5);
+    assert(surface.ny == 3);
+    assert(surface.dx == 250);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 1);
+    assert(surface.z[1][0] == 4);
+    assert(surface.z[0][1] == 2);
+    assert(surface.z[1][1] == 5);
+    assert(isNaN(surface.z[$ - 1][$ - 1]));
+    assert(isNaN(surface.z[$ - 1][0]));
+
+    //TODO test_pet_rect_blank.zmap
+    surface.loadFromIrapClassicAscii("./test/test_pet_sq.irap");
+    assert(surface.nx == 3);
+    assert(surface.ny == 3);
+    assert(surface.dx == 500);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 0);
+    assert(surface.z[$ - 1][$ - 1] == 8);
+
+    surface.loadFromIrapClassicAscii("./test/test_rms_sq.roxt");
+    assert(surface.nx == 3);
+    assert(surface.ny == 3);
+    assert(surface.dx == 500);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 0);
+    assert(surface.z[$ - 1][$ - 1] == 8);
+
+    surface.loadFromIrapClassicAscii("./test/test_rms_rect.roxt");
+    assert(surface.nx == 5);
+    assert(surface.ny == 3);
+    assert(surface.dx == 250);
+    assert(surface.dy == 500);
+    assert(surface.xOrigin == 5000);
+    assert(surface.yOrigin == 0);
+    assert(surface.z[0][0] == 1);
+    assert(surface.z[$ - 1][$ - 1] == 15);
+}
 
 /** 
  * Saves `surface` to file using specified `format`
@@ -528,52 +733,6 @@ void saveToCps3Ascii(CartesianSurface surface, string fileName) {
 }
 
 
-
-unittest {
-    CartesianSurface surface = new CartesianSurface;
-    surface.loadFromZmap("./test/test_pet_rect.zmap");
-    assert(surface.nx == 5);
-    assert(surface.ny == 3);
-    assert(surface.dx == 250);
-    assert(surface.dy == 500);
-    assert(surface.xOrigin == 5000);
-    assert(surface.yOrigin == 0);
-    assert(surface.z[0][0] == 1);
-    assert(surface.z[$ - 1][$ - 1] == 15);
-
-    //TODO test_pet_rect_blank.zmap
-    surface.loadFromZmap("./test/test_pet_sq.zmap");
-    assert(surface.nx == 3);
-    assert(surface.ny == 3);
-    assert(surface.dx == 500);
-    assert(surface.dy == 500);
-    assert(surface.xOrigin == 5000);
-    assert(surface.yOrigin == 0);
-    assert(surface.z[0][0] == 0);
-    assert(surface.z[$ - 1][$ - 1] == 8);
-
-    surface.loadFromZmap("./test/test_rms_sq.zmap");
-    assert(surface.nx == 3);
-    assert(surface.ny == 3);
-    assert(surface.dx == 500);
-    assert(surface.dy == 500);
-    assert(surface.xOrigin == 5000);
-    assert(surface.yOrigin == 0);
-    assert(surface.z[0][0] == 0);
-    assert(surface.z[$ - 1][$ - 1] == 8);
-
-    surface.loadFromZmap("./test/test_rms_rect.zmap");
-    assert(surface.nx == 5);
-    assert(surface.ny == 3);
-    assert(surface.dx == 250);
-    assert(surface.dy == 500);
-    assert(surface.xOrigin == 5000);
-    assert(surface.yOrigin == 0);
-    assert(surface.z[0][0] == 1);
-    assert(surface.z[$ - 1][$ - 1] == 15);
-}
-
-
 /** 
  * Tries to detect surface format
  * Params:
@@ -584,20 +743,22 @@ string surfaceFormat(string fileName) {
     File file = File(fileName, "r");
     string format = "unknown";
     string str = file.readln();
+    string [] words = str.split();
     if (str.startsWith("FSASCI")) {
         format = "cps";
     }
-    else {
-        if (str.startsWith("!")) {      //probably zmap
-            while(str.startsWith("!")) {
-                str = file.readln();
-            }
-            if (str.startsWith("@")) {
-                string [] words = str.replace(",", "").split();
-                if (words.length >= 4 && icmp(words[2], "grid") == 0)
-                    format = "zmap";
-            }
+    else if (str.startsWith("!")) {      //probably zmap
+        while(str.startsWith("!")) {
+            str = file.readln();
         }
+        if (str.startsWith("@")) {
+            words = str.replace(",", "").split();
+            if (words.length >= 4 && icmp(words[2], "grid") == 0)
+                format = "zmap";
+        }
+    }
+    else if (words.length == 4 && words[0].to!int == -996) {
+        format = "irap";
     }
     file.close();
     return format;
@@ -617,6 +778,13 @@ unittest {
     assert(surfaceFormat("./test/test_rms_rect.zmap") == "zmap");
     assert(surfaceFormat("./test/test_rms_rect_blank.zmap") == "zmap");
     assert(surfaceFormat("./test/test_rms_sq.zmap") == "zmap");
+
+    assert(surfaceFormat("./test/test_pet_rect_blank.irap") == "irap");
+    assert(surfaceFormat("./test/test_pet_sq.irap") == "irap");
+
+    assert(surfaceFormat("./test/test_rms_rect.roxt") == "irap");
+    assert(surfaceFormat("./test/test_rms_rect_blank.roxt") == "irap");
+    assert(surfaceFormat("./test/test_rms_sq.roxt") == "irap");
 }
 
 /**
@@ -645,7 +813,7 @@ CartesianSurface translate(CartesianSurface surface, double dx, double dy) {
 }
 
 /** 
- * Scales the given surface around it's origin point
+ * Scales the given surface around its origin point
  * Params:
  *   surface = surface to scale
  *   xf = scale factor along X direction

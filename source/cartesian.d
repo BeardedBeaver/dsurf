@@ -188,18 +188,33 @@ class CartesianSurface  {
         }
 
         //z: top left, top right, bottom left, bottom right
-        immutable double ztl = m_z[i][j + 1];
-        immutable double zbl = m_z[i][j];
-        immutable double ztr = m_z[i + 1][j + 1];
-        immutable double zbr = m_z[i + 1][j];
+        immutable double [] zcells = [m_z[i][j + 1], m_z[i + 1][j + 1], m_z[i][j], m_z[i + 1][j]];     
+        import mir.algorithm.iteration: count;
+        immutable ulong blanks = zcells.count!isNaN;
+        writeln(x, " ", y, " ", blanks);
+        if (blanks == 0) {
+            immutable double z1 = (m_xOrigin + (i + 1) * m_dx - x) / dx * zcells[2] + 
+                            (x - (m_xOrigin + i * m_dx)) / dx * zcells[3];
+            immutable double z2 = (m_xOrigin + (i + 1) * m_dx - x) / dx * zcells[0] + 
+                            (x - (m_xOrigin + i * m_dx)) / dx * zcells[1];
+            return (m_yOrigin + (j + 1) * m_dy - y) / m_dy * z1 + 
+                (y - (m_yOrigin + j * m_dy)) / m_dy * z2;
+        }
+        if (blanks >= 2) {
+            return double.nan;
+        }
+        // one blank
+        return 0;
+    }
 
-        //FIXME handle blanks
-        immutable double z1 = (m_xOrigin + (i + 1) * m_dx - x) / dx * zbl + 
-                          (x - (m_xOrigin + i * m_dx)) / dx * zbr;
-        immutable double z2 = (m_xOrigin + (i + 1) * m_dx - x) / dx * ztl + 
-                          (x - (m_xOrigin + i * m_dx)) / dx * ztr;
-        return (m_yOrigin + (j + 1) * m_dy - y) / m_dy * z1 + 
-               (y - (m_yOrigin + j * m_dy)) / m_dy * z2;
+    unittest {
+        auto surface = new CartesianSurface;
+        surface.loadFromCps3Ascii("./test/test_pet_rect_blank.cps");
+        assert(isNaN(surface.getZ(5600, 250)));
+        assert(!isNaN(surface.getZ(5600, 800)));
+        assert(isNaN(surface.getZ(5700, 600)));
+        assert(isNaN(surface.getZ(5600, 250)));
+        assert(isNaN(surface.getZ(5850, 250)));
     }
 
     /// Operators +=, -=, *=, /= overloading for two surfaces

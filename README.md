@@ -3,7 +3,7 @@
 Library for D programming language that provides tools to work with surfaces (2D grids)
 -----------
 
-Simple library for D to deal with surfaces (2D grids) built on top of [mir](http://mir-algorithm.libmir.org). Regular cartesian-cell 2D grids currently are supported. 
+Simple library for D to deal with surfaces (2D grids). Regular cartesian-cell 2D grids currently are supported. 
 
 ## Information
 

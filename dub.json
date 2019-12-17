@@ -1,11 +1,11 @@
 {
 	"authors": [
-		"BeardedBeaver"
+		"Dmitriy Linev"
 	],
 	"dependencies": {
-		"mir": "~>3.2.0",
+		
 	},
-	"copyright": "Copyright © 2019, BeardedBeaver",
+	"copyright": "Copyright © 2019, Dmitriy Linev",
 	"description": "Library for D programming language that provides tools to work with surfaces (2D grids)",
 	"license": "MIT",
 	"name": "dsurf"

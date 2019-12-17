@@ -8,8 +8,7 @@ import std.parallelism;
 import dsurf.cartesian;
 
 /***********************************
-* Set of algoritms to work with cartesian surfaces
-* Class CartesianSurface represents regular rectangular-cell surface
+* Set of algoritms to work with surfaces
 * Authors: Dmitriy Linev
 * License: MIT
 * Date: 2019-2020

@@ -8,8 +8,6 @@ import std.file;
 import std.conv;
 import std.math;
 
-import mir.ndslice;
-
 /***********************************
 * Class CartesianSurface represents regular rectangular-cell surface
 * Authors: Dmitriy Linev
@@ -47,59 +45,48 @@ class CartesianSurface  {
         m_yOrigin = yOrigin;
         m_dx = dx;
         m_dy = dy;
-        m_z = slice!double(nx, ny);
+        m_zd = new double[](m_nx * m_ny);
+        m_z = m_zd.chunks(m_ny);
     }
 
     unittest {
-        CartesianSurface s1 = new CartesianSurface;
+        auto s1 = new CartesianSurface;
         s1.setHeader(2, 2, 0, 0, 500, 500);
-        s1.m_z[] = 50;
-        for (int i = 0; i < s1.nx; i++) {
-            for (int j = 0; j < s1.ny; j++) {
+        s1.m_zd[] = 50;
+        for (int i = 0; i < s1.nx; i++)
+            for (int j = 0; j < s1.ny; j++)
                 assert(s1.z[i][j] == 50);
-            }
-        }
     }
 
     /// Copy constructor, returns the exact copy of the given surface
     this(CartesianSurface surface) pure {
         this.setHeader(surface.nx, surface.ny, surface.xOrigin, surface.yOrigin, surface.dx, surface.dy);
-        this.m_z[] = surface.m_z[];
+        this.m_zd[] = surface.m_zd[];
     }
 
     unittest {
-        CartesianSurface s1 = new CartesianSurface;
+        auto s1 = new CartesianSurface;
         s1.setHeader(2, 2, 0, 0, 500, 500);
-        for (int i = 0; i < s1.nx; i++) {
-            for (int j = 0; j < s1.ny; j++) {
+        for (int i = 0; i < s1.nx; i++)
+            for (int j = 0; j < s1.ny; j++)
                 s1.z[i][j] = 50;
-            }
-        }
 
-        CartesianSurface s2 = new CartesianSurface(s1);
-        for (int i = 0; i < s1.nx; i++) {
-            for (int j = 0; j < s1.ny; j++) {
+        auto s2 = new CartesianSurface(s1);
+        for (int i = 0; i < s1.nx; i++)
+            for (int j = 0; j < s1.ny; j++)
                 assert(s2.z[i][j] == 50);
-            }
-        }
 
-        for (int i = 0; i < s1.nx; i++) {
-            for (int j = 0; j < s1.ny; j++) {
+        for (int i = 0; i < s1.nx; i++)
+            for (int j = 0; j < s1.ny; j++)
                 s2.z[i][j] = 10;
-            }
-        }
 
-        for (int i = 0; i < s1.nx; i++) {
-            for (int j = 0; j < s1.ny; j++) {
+        for (int i = 0; i < s1.nx; i++)
+            for (int j = 0; j < s1.ny; j++)
                 assert(s2.z[i][j] == 10);
-            }
-        }
 
-        for (int i = 0; i < s1.nx; i++) {
-            for (int j = 0; j < s1.ny; j++) {
+        for (int i = 0; i < s1.nx; i++)
+            for (int j = 0; j < s1.ny; j++)
                 assert(s1.z[i][j] == 50);
-            }
-        }
     }
 
     /// Returns X coordinate of surface origin
@@ -133,7 +120,7 @@ class CartesianSurface  {
     }
     ---
     */ 
-    @property Slice!(double*, 2) z() { return m_z; }  
+    @property Chunks!(double[]) z() { return m_z; } 
 
     /// Returns `true` if point with given coordinates is inside surface boundaries, otherwise returns `false`
     bool isInsideSurface(double x, double y) const @nogc {
@@ -159,7 +146,7 @@ class CartesianSurface  {
     }
 
     unittest {
-        CartesianSurface surface = new CartesianSurface;
+        auto surface = new CartesianSurface;
         surface.setHeader(10, 10, 0, 1000, 500, 500);
         assert(surface.cellXIndex(-1000) == -1);
         assert(surface.cellYIndex(-1000) == -1);
@@ -172,14 +159,14 @@ class CartesianSurface  {
     }
 
     /// Returns z value of a point with given coordinate using bilinear interpolation
-    double getZ(double x, double y) const {
+    double getZ(double x, double y) {
         if (!isInsideSurface(x, y))
             return double.nan;
         immutable int i = cellXIndex(x);
         immutable int j = cellYIndex(y);
 
         if (i == m_nx - 1 && j == m_ny - 1)  //top right corner
-            return m_z[$ - 1][$ - 1];
+            return m_z[nx - 1][ny - 1];
         else if (i == m_nx - 1) {   //right edge
             return m_z[i][j] + (m_z[i][j + 1] - m_z[i][j]) / m_dy * (y - (m_yOrigin + j * m_dy));
         }
@@ -188,23 +175,48 @@ class CartesianSurface  {
         }
 
         //z: top left, top right, bottom left, bottom right
-        immutable double [] zcells = [m_z[i][j + 1], m_z[i + 1][j + 1], m_z[i][j], m_z[i + 1][j]];     
-        import mir.algorithm.iteration: count;
+        double [] zcells = [m_z[i][j + 1], m_z[i + 1][j + 1], m_z[i][j], m_z[i + 1][j]];  
+
         immutable ulong blanks = zcells.count!isNaN;
-        writeln(x, " ", y, " ", blanks);
-        if (blanks == 0) {
-            immutable double z1 = (m_xOrigin + (i + 1) * m_dx - x) / dx * zcells[2] + 
-                            (x - (m_xOrigin + i * m_dx)) / dx * zcells[3];
-            immutable double z2 = (m_xOrigin + (i + 1) * m_dx - x) / dx * zcells[0] + 
-                            (x - (m_xOrigin + i * m_dx)) / dx * zcells[1];
-            return (m_yOrigin + (j + 1) * m_dy - y) / m_dy * z1 + 
-                (y - (m_yOrigin + j * m_dy)) / m_dy * z2;
-        }
-        if (blanks >= 2) {
+        if (blanks > 1) {   // more than one node is blank - value in not defined
             return double.nan;
         }
-        // one blank
-        return 0;
+        else if (blanks == 1) {     // one node is blank - tryng to reconstruct actual value
+            if (isNaN(zcells[0])) {
+                if (sqrt(pow(x - (m_xOrigin + i * m_dx), 2) + pow(y - (m_yOrigin + (j + 1) * m_dy), 2)) < 
+                    sqrt(pow(x - (m_xOrigin + (i + 1) * m_dx), 2) + pow(y - (m_yOrigin + j * m_dy), 2)))    
+                    // checking if given point is inside defined triangle
+                    // by comparing a distance to the blank corner with a distance to the opposite corner
+                    return double.nan;
+                // if it is defined, reconstruct the missing corner assuming the fixed gradient along two opposite edges
+                zcells[0] = zcells[2] + zcells[1] - zcells[3];  
+            }
+            else if (isNaN(zcells[1])) {
+                if (sqrt(pow(x - (m_xOrigin + (i + 1) * m_dx), 2) + pow(y - (m_yOrigin + (j + 1) * m_dy), 2)) < 
+                    sqrt(pow(x - (m_xOrigin + i * m_dx), 2) + pow(y - (m_yOrigin + j * m_dy), 2)))
+                    return double.nan;
+                zcells[1] = zcells[3] + zcells[0] - zcells[2];
+            }
+            else if (isNaN(zcells[2])) {
+                if (sqrt(pow(x - (m_xOrigin + i * m_dx), 2) + pow(y - (m_yOrigin + j * m_dy), 2)) < 
+                    sqrt(pow(x - (m_xOrigin + (i + 1) * m_dx), 2) + pow(y - (m_yOrigin + (j + 1) * m_dy), 2)))
+                    return double.nan;
+                zcells[2] = zcells[0] + zcells[3] - zcells[1];
+            }
+            else if (isNaN(zcells[3])) {
+                if (sqrt(pow(x - (m_xOrigin + (i + 1) * m_dx), 2) + pow(y - (m_yOrigin + j * m_dy), 2)) < 
+                    sqrt(pow(x - (m_xOrigin + i * m_dx), 2) + pow(y - (m_yOrigin + (j + 1) * m_dy), 2)))
+                    return double.nan;
+                zcells[3] = zcells[1] + zcells[2] - zcells[0];
+            }
+        }
+        // bilinear interpolation
+        immutable double z1 = (m_xOrigin + (i + 1) * m_dx - x) / dx * zcells[2] + 
+                        (x - (m_xOrigin + i * m_dx)) / dx * zcells[3];
+        immutable double z2 = (m_xOrigin + (i + 1) * m_dx - x) / dx * zcells[0] + 
+                        (x - (m_xOrigin + i * m_dx)) / dx * zcells[1];
+        return (m_yOrigin + (j + 1) * m_dy - y) / m_dy * z1 + 
+            (y - (m_yOrigin + j * m_dy)) / m_dy * z2;
     }
 
     unittest {
@@ -217,6 +229,23 @@ class CartesianSurface  {
         assert(isNaN(surface.getZ(5850, 250)));
     }
 
+    unittest {
+        auto surface = new CartesianSurface;
+        surface.loadFromCps3Ascii("./test/test_pet_sq.cps");
+        assert(surface.nx == 3);
+        assert(surface.ny == 3);
+        surface.z[1][1] = double.nan;
+        assert(isNaN(surface.getZ(5320.00, 700.00)));
+        assert(isNaN(surface.getZ(5650.00, 715.00)));
+        assert(isNaN(surface.getZ(5650.00, 300.00)));
+        assert(isNaN(surface.getZ(5315.00, 300.00)));
+
+        assert(approxEqual(surface.getZ(5120.00, 850.00), 2.42));
+        assert(approxEqual(surface.getZ(5815.00, 850.00), 6.59));
+        assert(approxEqual(surface.getZ(5800.00, 200.00), 5.20));
+        assert(approxEqual(surface.getZ(5200.00, 200.00), 1.60));
+    }
+
     /// Operators +=, -=, *=, /= overloading for two surfaces
     CartesianSurface opOpAssign(string op)(CartesianSurface rhs) {
         for (int i = 0; i < m_nx; i++) {
@@ -226,20 +255,17 @@ class CartesianSurface  {
                 immutable double rhsz = rhs.getZ(x, y);
                 if (isNaN(rhsz))
                     continue;
-                static if (op == "+") {
+                static if (op == "+") 
                     m_z[i][j] += rhsz;
-                }
-                else static if (op == "-") {
+                else static if (op == "-")
                     m_z[i][j] -= rhsz;
-                }
-                else static if (op == "*") {
+                else static if (op == "*")
                     m_z[i][j] *= rhsz;
-                }
                 else static if (op == "/") {
                     if (abs(rhsz) < 1e-9)
-                        m_z[i][j] = math.nan;
+                        m_z[i][j] = double.nan;
                     else
-                        m_z[i][j] -= rhsz;
+                        m_z[i][j] /= rhsz;
                 }
                 else static assert(0, "Operator "~op~" not implemented");
             }
@@ -247,69 +273,111 @@ class CartesianSurface  {
         return this;
     }
 
+    unittest {
+        auto s1 = new CartesianSurface;
+        s1.setHeader(2, 2, 0, 0, 500, 500);
+        for (int i = 0; i < s1.nx; i++)
+            for (int j = 0; j < s1.ny; j++)
+                s1.z[i][j] = 50;
+
+        auto s2 = new CartesianSurface(s1);
+        for (int i = 0; i < s1.nx; i++)
+            for (int j = 0; j < s1.ny; j++)
+                s2.m_zd [] = 10;
+
+        s1 /= s2;
+        for (int i = 0; i < s1.nx; i++) 
+            for (int j = 0; j < s1.ny; j++) 
+                assert(s1.z[i][j] == 5);
+
+        s1 += s2;
+        for (int i = 0; i < s1.nx; i++) 
+            for (int j = 0; j < s1.ny; j++) 
+                assert(s1.z[i][j] == 15);
+
+        s1 *= s2;
+        for (int i = 0; i < s1.nx; i++) 
+            for (int j = 0; j < s1.ny; j++) 
+                assert(s1.z[i][j] == 150);
+
+        s1 -= s2;
+        for (int i = 0; i < s1.nx; i++) 
+            for (int j = 0; j < s1.ny; j++) 
+                assert(s1.z[i][j] == 140);
+    }
+
     /// Operators +, -, *, / overloading for two surfaces
     CartesianSurface opBinary(string op)(CartesianSurface rhs) {
         CartesianSurface result = new CartesianSurface(this);
-        static if (op == "+") {
+        static if (op == "+")
             result += rhs;
-        }
-        else static if (op == "-") {
+        else static if (op == "-")
             result -= rhs;
-        }
-        else static if (op == "*") {
+        else static if (op == "*")
             result *= result;
-        }
-        else static if (op == "/") {
+        else static if (op == "/")
             result /= rhs;
-        }
         else static assert(0, "Operator "~op~" not implemented");
         return result;
     }
 
     /// Operators +=, -=, *=, /= overloading for a surface and a fixed value
     CartesianSurface opOpAssign(string op)(double rhs) {
-        for (int i = 0; i < m_nx; i++) {
-            for (int j = 0; j < m_ny; j++) {
-                static if (op == "+") {
-                    m_z[i][j] += rhs;
-                }
-                else static if (op == "-") {
-                    m_z[i][j] -= rhs;
-                }
-                else static if (op == "*") {
-                    m_z[i][j] *= rhs;
-                }
-                else static if (op == "/") {
-                    m_z[i][j] -= rhs;
-                }
-                else static assert(0, "Operator "~op~" not implemented");
-            }
-        }
-        return this;
-        
+        static if (op == "+")
+            m_zd [] += rhs;
+        else static if (op == "-")
+            m_zd [] -= rhs;
+        else static if (op == "*")
+            m_zd [] *= rhs;
+        else static if (op == "/")
+            m_zd [] /= rhs;
+        else static assert(0, "Operator "~op~" not implemented");
+        return this;   
     }
 
     /// Operators +, -, *, / overloading for a surface and a fixed value
     CartesianSurface opBinary(string op)(double rhs) {
         CartesianSurface result = new CartesianSurface(this);
-        static if (op == "+") {
+        static if (op == "+")
             result += rhs;
-        }
-        else static if (op == "-") {
+        else static if (op == "-")
             result -= rhs;
-        }
-        else static if (op == "*") {
+        else static if (op == "*")
             result *= result;
-        }
-        else static if (op == "/") {
+        else static if (op == "/")
             result /= rhs;
-        }
         else static assert(0, "Operator "~op~" not implemented");
         return result;
     }
+
+    unittest {
+        auto surface = new CartesianSurface;
+        surface.setHeader(2, 2, 0, 0, 500, 500);
+        surface.m_zd[] = 50;
+        surface += 10;
+        for (int i = 0; i < surface.nx; i++)
+            for (int j = 0; j < surface.ny; j++)
+                assert(surface.z[i][j] == 60);
+        
+        surface -= 20;
+        for (int i = 0; i < surface.nx; i++)
+            for (int j = 0; j < surface.ny; j++)
+                assert(surface.z[i][j] == 40);
+
+        surface *= 2.5;
+        for (int i = 0; i < surface.nx; i++)
+            for (int j = 0; j < surface.ny; j++)
+                assert(surface.z[i][j] == 100);
+
+        surface /= 10;
+        for (int i = 0; i < surface.nx; i++)
+            for (int j = 0; j < surface.ny; j++)
+                assert(surface.z[i][j] == 10);
+    }
     
 private:
-    Slice!(double*, 2) m_z;
+    double[] m_zd;           /// dense representation of Z values of the surface
+    Chunks!(double[]) m_z;   /// Z chunks
     double m_xOrigin;
     double m_yOrigin;
     double m_dx;
@@ -405,7 +473,7 @@ void loadFromCps3Ascii(CartesianSurface surface, string fileName) {
 }
 
 unittest {
-    CartesianSurface surface = new CartesianSurface;
+    auto surface = new CartesianSurface;
     surface.loadFromCps3Ascii("./test/test_pet_rect.cps");
     assert(surface.nx == 5);
     assert(surface.ny == 3);
@@ -529,7 +597,7 @@ void loadFromZmap(CartesianSurface surface, string fileName) {
 }
 
 unittest {
-    CartesianSurface surface = new CartesianSurface;
+    auto surface = new CartesianSurface;
     surface.loadFromZmap("./test/test_pet_rect.zmap");
     assert(surface.nx == 5);
     assert(surface.ny == 3);
@@ -646,7 +714,7 @@ void loadFromIrapClassicAscii(CartesianSurface surface, string fileName) {
 }
 
 unittest {
-    CartesianSurface surface = new CartesianSurface;
+    auto surface = new CartesianSurface;
     surface.loadFromIrapClassicAscii("./test/test_pet_rect_blank.irap");
     assert(surface.nx == 5);
     assert(surface.ny == 3);
@@ -724,8 +792,8 @@ void saveToCps3Ascii(CartesianSurface surface, string fileName) {
                 surface.m_xOrigin + (surface.m_nx) * surface.m_dx, " ", 
                 surface.m_yOrigin, " ", 
                 surface.m_yOrigin + (surface.m_ny) * surface.m_dy, " ", 
-                surface.m_z[surface.m_z.minIndex], " ", 
-                surface.m_z[surface.m_z.maxIndex]);
+                surface.m_zd[surface.m_zd.minIndex], " ", 
+                surface.m_zd[surface.m_zd.maxIndex]);
     file.writeln("FSNROW ", surface.m_ny, " ", surface.m_nx);
     file.writeln("FSXINC ", surface.m_dx, " ", surface.m_dy);
     int n = 0;
@@ -843,10 +911,10 @@ CartesianSurface scale(CartesianSurface surface, double xf, double yf) {  //scal
 }
 
 CartesianSurface normalize(CartesianSurface surface) {
-    immutable double zmax = surface.m_z[surface.m_z.maxIndex];
-    immutable double zmin = surface.m_z[surface.m_z.minIndex];
-    surface.m_z[] -= zmin;
-    surface.m_z[] /= zmax;
+    immutable double zmax = surface.m_zd[surface.m_zd.maxIndex];
+    immutable double zmin = surface.m_zd[surface.m_zd.minIndex];
+    surface.m_zd[] -= zmin;
+    surface.m_zd[] /= zmax;
     return surface;
 }
 

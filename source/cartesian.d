@@ -772,6 +772,10 @@ void saveToFile(CartesianSurface surface, string fileName, string format) {
         saveToCps3Ascii(surface, fileName);
     if (format.startsWith("cps".toLower)) 
         saveToCps3Ascii(surface, fileName);
+    else if (format.startsWith("zmap".toLower))
+        saveToZMap(surface, fileName);
+    else if (format.startsWith("irap".toLower))
+        saveToIrapClassicAscii(surface, fileName);
     else 
         throw new FileException(format ~ " cartesian surface format is not supported for export");
 }
@@ -815,12 +819,83 @@ void saveToCps3Ascii(CartesianSurface surface, string fileName) {
     }
 }
 
+void saveToZMap(CartesianSurface surface, string fileName) {
+    File file = File(fileName, "w");
+    immutable double blank = 1e30;
+    import std.path: baseName;
+    file.writeln("!     dsurf - library for surface handling");
+    file.writeln("!     for D programming language");
+    file.writeln("!     GRID FILE NAME   : n");
+    file.writeln("!     CREATION DATE    : ");
+    file.writeln("!     CREATION TIME    : ");
+    file.writeln("!");
+    file.writeln("@" ~ baseName(fileName) ~ " HEADER, GRID, 5");  
+    // according to https://github.com/OSGeo/gdal/blob/master/gdal/frmts/zmap/zmapdataset.cpp
+    // 5 is a number of values per line but both Petrel and RMS saves 5 but ignores it in actual data
+    // so do we
+
+    file.write("     " ~ (surface.nx * surface.ny).to!string ~ ", " ~ blank.to!string ~ ", " ~ "," ~ "6, 1\n"); //6 decimals and default 1 (no idea whai it means)
+    file.write(surface.ny.to!string ~ ", " ~ surface.nx.to!string ~ ", ");
+    file.write("     " ~ surface.xOrigin.to!string ~ ", ");
+    file.write((surface.xOrigin + (surface.nx - 1) * surface.dx).to!string ~ ", ");
+    file.write(surface.yOrigin.to!string ~ ", ");
+    file.write((surface.yOrigin + (surface.ny - 1) * surface.dy).to!string ~ "\n");
+    file.writeln("     " ~ "0.00, 0.00, 0.00"); //transform apparently
+    file.writeln("@");    //start of an actual data
+    int n = 0;
+    for (int i = 0; i < surface.nx; i++) {
+        for (int j = surface.ny - 1; j >= 0; j--) {
+            if (isNaN(surface.z[i][j]))
+                file.write(blank);
+            else
+                file.write(surface.z[i][j]);
+            n++;
+            if (n > 5) {
+                n = 0;
+                file.write("\n");
+            }
+            else {
+                file.write(" ");
+            }
+        }
+    }
+}
+
+unittest {
+    auto surface1 = new CartesianSurface;
+    surface1.loadFromZmap("./test/test_rms_sq.zmap");
+    surface1.saveToZMap("./test/_tmp_test_export.zmap");
+    assert(surfaceFormat("./test/_tmp_test_export.zmap") == "zmap");
+    auto surface2 = new CartesianSurface;
+    surface2.loadFromZmap("./test/_tmp_test_export.zmap");
+    import std.file: remove;
+    remove("./test/_tmp_test_export.zmap");
+
+    assert(surface1.nx == surface2.nx);
+    assert(surface1.ny == surface2.ny);
+    assert(surface1.dx == surface2.dx);
+    assert(surface1.dy == surface2.dy);
+
+    assert(surface1.xOrigin == surface2.xOrigin);
+    assert(surface1.yOrigin == surface2.yOrigin);
+    
+    for (int i = 0; i < surface1.nx; i++) {
+        for (int j = 0; j < surface1.ny; j++) {
+            assert(surface1.z[i][j] == surface2.z[i][j]);
+        }
+    }
+
+}
+
+void saveToIrapClassicAscii(CartesianSurface surface, string fileName) {
+
+}
 
 /** 
  * Tries to detect surface format
  * Params:
  *   fileName = 
- * Returns: string containing surface format. `cps` for CPS3 ASCII; 'zmap' for ZMAP+ ASCII; 'unknown' if format hasn't been detected.
+ * Returns: string containing surface format. `cps` for CPS3 ASCII; 'zmap' for ZMAP+ ASCII; 'irap' for IRAP Classic ASCII (aka ROXAR text); 'unknown' if format hasn't been detected.
  */
 string surfaceFormat(string fileName) {
     File file = File(fileName, "r");

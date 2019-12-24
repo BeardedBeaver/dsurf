@@ -28,6 +28,7 @@ License: MIT
 ## Supported export formats
 
   - CPS-3 ASCII
+  - ZMap+
 
 ## Example
 

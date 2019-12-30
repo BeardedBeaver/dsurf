@@ -391,7 +391,7 @@ private:
  * Params:
  *   surface = `CartesianSurface` to load data to
  *   fileName = Path to file for loading
- * Currently supported formats are CPS3 ASCII and ZMAP+
+ * Currently supported formats are CPS3 ASCII, ZMap+ and IRAP Classic (aka ROXAR text)
  */
 void loadFromFile(CartesianSurface surface, string fileName) {
     immutable auto format = surfaceFormat(fileName);
@@ -766,7 +766,7 @@ unittest {
  * Params:
  *   surface = surface to save
  *   fileName = path to output file
- *   format = format to save surface to. Currently supported formats for export are: CPS3 ASCII
+ *   format = format to save surface to. Currently supported formats for export are: CPS3 ASCII ('cps') and ZMap+ ('zmap')
  */
 void saveToFile(CartesianSurface surface, string fileName, string format) {
         saveToCps3Ascii(surface, fileName);
@@ -819,6 +819,12 @@ void saveToCps3Ascii(CartesianSurface surface, string fileName) {
     }
 }
 
+/** 
+ * Saves the given surface to ZMap+ text format
+ * Params:
+ *   surface = surface to save
+ *   fileName = path to output file
+ */
 void saveToZMap(CartesianSurface surface, string fileName) {
     File file = File(fileName, "w");
     immutable double blank = 1e30;
@@ -894,7 +900,7 @@ void saveToIrapClassicAscii(CartesianSurface surface, string fileName) {
 /** 
  * Tries to detect surface format
  * Params:
- *   fileName = 
+ *   fileName = path to file to detect format
  * Returns: string containing surface format. `cps` for CPS3 ASCII; 'zmap' for ZMAP+ ASCII; 'irap' for IRAP Classic ASCII (aka ROXAR text); 'unknown' if format hasn't been detected.
  */
 string surfaceFormat(string fileName) {
@@ -957,7 +963,7 @@ void sampleFromSurface(CartesianSurface surface, CartesianSurface source) {
 }
 
 /** 
- * Translates the given surface
+ * Translates the given surface (moves its origin point to the given vector) leaving increments untouched
  * Params:
  *   surface = surface to translate
  *   dx = translation value along X direction
@@ -985,16 +991,30 @@ CartesianSurface scale(CartesianSurface surface, double xf, double yf) {  //scal
     return surface;
 }
 
+/** 
+ * Normalizes the given surface (minimum value will be 0, maximum value will be 1)
+ * Doesn't alter surface limits and origin point
+ * Case of equal min and max is not controlled (division by zero will occur)
+ * Params:
+ *   surface = surface to normalize
+ * Returns: Normalized surface for more convenient call chaining
+ */
 CartesianSurface normalize(CartesianSurface surface) {
     immutable double zmax = surface.m_zd[surface.m_zd.maxIndex];
     immutable double zmin = surface.m_zd[surface.m_zd.minIndex];
     surface.m_zd[] -= zmin;
-    surface.m_zd[] /= zmax;
+    surface.m_zd[] /= (zmax - zmin);
     return surface;
 }
 
 unittest {
-    //TODO implement
+    auto surface = new CartesianSurface;
+    surface.loadFromFile("./test/test_rms_sq.cps");
+    surface.normalize();
+    immutable double zmax = surface.m_zd[surface.m_zd.maxIndex];
+    immutable double zmin = surface.m_zd[surface.m_zd.minIndex];
+    assert(zmax == 1);
+    assert(zmin == 0);
 }
 
 //TODO flipAnlogI/flipAlongJ

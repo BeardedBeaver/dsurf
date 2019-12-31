@@ -17,7 +17,7 @@ import std.math;
 class CartesianSurface  {
 
     /**
-    * Default constructor, doesn't allocate memory for height map
+    * Default constructor, doesn`t allocate memory for height map
     */
     this() pure {
         m_xOrigin = 0;
@@ -110,7 +110,7 @@ class CartesianSurface  {
 
     /**
     Method to access height map.
-    Returns: `Slice!(double*, 2)` containing surface's height map with dimensions nx * ny
+    Returns: `Slice!(double*, 2)` containing surface`s height map with dimensions nx * ny
     Example:
     ---
     for (int i = 0; i < surface.nx; i++) {
@@ -766,7 +766,7 @@ unittest {
  * Params:
  *   surface = surface to save
  *   fileName = path to output file
- *   format = format to save surface to. Currently supported formats for export are: CPS3 ASCII ('cps') and ZMap+ ('zmap')
+ *   format = format to save surface to. Currently supported formats for export are: CPS3 ASCII (`cps`) and ZMap+ (`zmap`)
  */
 void saveToFile(CartesianSurface surface, string fileName, string format) {
         saveToCps3Ascii(surface, fileName);
@@ -901,7 +901,7 @@ void saveToIrapClassicAscii(CartesianSurface surface, string fileName) {
  * Tries to detect surface format
  * Params:
  *   fileName = path to file to detect format
- * Returns: string containing surface format. `cps` for CPS3 ASCII; 'zmap' for ZMAP+ ASCII; 'irap' for IRAP Classic ASCII (aka ROXAR text); 'unknown' if format hasn't been detected.
+ * Returns: string containing surface format. `cps` for CPS3 ASCII; `zmap` for ZMAP+ ASCII; `irap` for IRAP Classic ASCII (aka ROXAR text); `unknown` if format hasn`t been detected.
  */
 string surfaceFormat(string fileName) {
     File file = File(fileName, "r");
@@ -993,7 +993,7 @@ CartesianSurface scale(CartesianSurface surface, double xf, double yf) {  //scal
 
 /** 
  * Normalizes the given surface (minimum value will be 0, maximum value will be 1)
- * Doesn't alter surface limits and origin point
+ * Doesn`t alter surface limits and origin point
  * Case of equal min and max is not controlled (division by zero will occur)
  * Params:
  *   surface = surface to normalize

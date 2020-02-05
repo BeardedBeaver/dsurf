@@ -14,3 +14,4 @@ dsurf-test-*
 *.o
 *.obj
 *.lst
+dub.selection.json

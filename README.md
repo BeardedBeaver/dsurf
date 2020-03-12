@@ -29,6 +29,7 @@ License: MIT
 
   - CPS-3 ASCII
   - ZMap+
+  - IRAP Classic ASCII (aka ROXAR text)
 
 ## Example
 

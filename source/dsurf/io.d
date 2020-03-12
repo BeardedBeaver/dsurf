@@ -35,6 +35,8 @@ void loadFromFile(CartesianSurface surface, string fileName) {
         loadFromCps3Ascii(surface, fileName);
     else if (format == "zmap")
         loadFromZmap(surface, fileName);
+    else if (format == "irap")
+        loadFromIrapClassicAscii(surface, fileName);
     else
         throw new FileException("Unknown surface format");
 }
@@ -545,8 +547,8 @@ void saveToIrapClassicAscii(CartesianSurface surface, string fileName) {
                 0, " ", 0, " ", 0, " ", 0, "\n");
     file.write("    ");
     int n = 0;
-    for (int i = 0; i < surface.nx; i++) {
-        for (int j = 0; j < surface.ny; j++) {
+    for (int j = 0; j < surface.ny; j++) {
+        for (int i = 0; i < surface.nx; i++) {
             file.write(surface.z[i][j]);
             n++;
             if (n % 6 == 0)
@@ -558,16 +560,28 @@ void saveToIrapClassicAscii(CartesianSurface surface, string fileName) {
 }
 
 unittest {
-    auto surface = new CartesianSurface;
-    surface.setHeader(20, 30, 0, 1000, 100, 100);
-    int n = 0;
-    for (int i = 0; i < surface.nx; i++) {
-        for (int j = 0; j < surface.ny; j++) {
-            surface.z[i][j] = n;
-            n++;
+    auto surface1 = new CartesianSurface;
+    surface1.loadFromZmap("./test/test_rms_sq.zmap");
+    surface1.saveToIrapClassicAscii("./test/_tmp_test_export.irap");
+    assert(surfaceFormat("./test/_tmp_test_export.irap") == "irap");
+    auto surface2 = new CartesianSurface;
+    surface2.loadFromFile("./test/_tmp_test_export.irap");
+    import std.file: remove;
+    remove("./test/_tmp_test_export.irap");
+
+    assert(surface1.nx == surface2.nx);
+    assert(surface1.ny == surface2.ny);
+    assert(surface1.dx == surface2.dx);
+    assert(surface1.dy == surface2.dy);
+
+    assert(surface1.xOrigin == surface2.xOrigin);
+    assert(surface1.yOrigin == surface2.yOrigin);
+    
+    for (int i = 0; i < surface1.nx; i++) {
+        for (int j = 0; j < surface1.ny; j++) {
+            assert(surface1.z[i][j] == surface2.z[i][j]);
         }
     }
-    surface.saveToIrapClassicAscii("D:/tmp/testsave.irap");
 }
 
 /** 

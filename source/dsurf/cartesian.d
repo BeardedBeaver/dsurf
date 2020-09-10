@@ -44,16 +44,16 @@ class CartesianSurface  {
         m_dx = dx;
         m_dy = dy;
         m_zd = new double[](m_nx * m_ny);
-        m_z = m_zd.chunks(m_ny);
+        m_z = m_zd.chunks(m_ny).array;
     }
 
     unittest {
-        auto s1 = new CartesianSurface;
-        s1.setHeader(2, 2, 0, 0, 500, 500);
-        s1.m_zd[] = 50;
-        for (int i = 0; i < s1.nx; i++)
-            for (int j = 0; j < s1.ny; j++)
-                assert(s1.z[i][j] == 50);
+        auto surface = new CartesianSurface;
+        surface.setHeader(2, 2, 0, 0, 500, 500);
+        surface.m_zd[] = 50;
+        foreach(i; 0 .. surface.nx)
+            foreach(j; 0 .. surface.ny)
+                assert(surface.z[i][j] == 50);
     }
 
     /// Copy constructor, returns the exact copy of the given surface
@@ -63,28 +63,28 @@ class CartesianSurface  {
     }
 
     unittest {
-        auto s1 = new CartesianSurface;
-        s1.setHeader(2, 2, 0, 0, 500, 500);
-        for (int i = 0; i < s1.nx; i++)
-            for (int j = 0; j < s1.ny; j++)
-                s1.z[i][j] = 50;
+        auto surface = new CartesianSurface;
+        surface.setHeader(2, 2, 0, 0, 500, 500);
+        foreach(i; 0 .. surface.nx)
+            foreach(j; 0 .. surface.ny)
+                surface.z[i][j] = 50;
 
-        auto s2 = new CartesianSurface(s1);
-        for (int i = 0; i < s1.nx; i++)
-            for (int j = 0; j < s1.ny; j++)
+        auto s2 = new CartesianSurface(surface);
+        foreach(i; 0 .. surface.nx)
+            foreach(j; 0 .. surface.ny)
                 assert(s2.z[i][j] == 50);
 
-        for (int i = 0; i < s1.nx; i++)
-            for (int j = 0; j < s1.ny; j++)
+        foreach(i; 0 .. surface.nx)
+            foreach(j; 0 .. surface.ny)
                 s2.z[i][j] = 10;
 
-        for (int i = 0; i < s1.nx; i++)
-            for (int j = 0; j < s1.ny; j++)
+        foreach(i; 0 .. surface.nx)
+            foreach(j; 0 .. surface.ny)
                 assert(s2.z[i][j] == 10);
 
-        for (int i = 0; i < s1.nx; i++)
-            for (int j = 0; j < s1.ny; j++)
-                assert(s1.z[i][j] == 50);
+        foreach(i; 0 .. surface.nx)
+            foreach(j; 0 .. surface.ny)
+                assert(surface.z[i][j] == 50);
     }
 
     /// Returns X coordinate of surface origin
@@ -116,14 +116,14 @@ class CartesianSurface  {
     Returns: `Slice!(double*, 2)` containing surface`s height map with dimensions nx * ny
     Example:
     ---
-    for (int i = 0; i < surface.nx; i++) {
-        for (int j = 0; j < surface.ny; j++) {
+    foreach (i; 0 .. surface.nx) {
+        foreach (j; 0 .. surface.ny) {
             surface.z[i][j] = 0;
         }
     }
     ---
     */ 
-    @property Chunks!(double[]) z() { return m_z; } 
+    @property double[][] z() { return m_z; } 
 
     /// Returns `true` if point with given coordinates is inside surface boundaries, otherwise returns `false`
     bool isInsideSurface(double x, double y) const @nogc {
@@ -281,33 +281,33 @@ class CartesianSurface  {
     unittest {
         auto s1 = new CartesianSurface;
         s1.setHeader(2, 2, 0, 0, 500, 500);
-        for (int i = 0; i < s1.nx; i++)
-            for (int j = 0; j < s1.ny; j++)
+        foreach (i; 0 .. s1.nx)
+            foreach (j; 0 .. s1.ny)
                 s1.z[i][j] = 50;
 
         auto s2 = new CartesianSurface(s1);
-        for (int i = 0; i < s1.nx; i++)
-            for (int j = 0; j < s1.ny; j++)
+        foreach (i; 0 .. s1.nx)
+            foreach (j; 0 .. s1.ny)
                 s2.m_zd [] = 10;
 
         s1 /= s2;
-        for (int i = 0; i < s1.nx; i++) 
-            for (int j = 0; j < s1.ny; j++) 
+        foreach (i; 0 .. s1.nx)
+            foreach (j; 0 .. s1.ny) 
                 assert(s1.z[i][j] == 5);
 
         s1 += s2;
-        for (int i = 0; i < s1.nx; i++) 
-            for (int j = 0; j < s1.ny; j++) 
+        foreach (i; 0 .. s1.nx)
+            foreach (j; 0 .. s1.ny)
                 assert(s1.z[i][j] == 15);
 
         s1 *= s2;
-        for (int i = 0; i < s1.nx; i++) 
-            for (int j = 0; j < s1.ny; j++) 
+        foreach (i; 0 .. s1.nx)
+            foreach (j; 0 .. s1.ny) 
                 assert(s1.z[i][j] == 150);
 
         s1 -= s2;
-        for (int i = 0; i < s1.nx; i++) 
-            for (int j = 0; j < s1.ny; j++) 
+        foreach (i; 0 .. s1.nx)
+            foreach (j; 0 .. s1.ny)
                 assert(s1.z[i][j] == 140);
     }
 
@@ -319,11 +319,44 @@ class CartesianSurface  {
         else static if (op == "-")
             result -= rhs;
         else static if (op == "*")
-            result *= result;
+            result *= rhs;
         else static if (op == "/")
             result /= rhs;
         else static assert(0, "Operator "~op~" not implemented");
         return result;
+    }
+
+    unittest {
+        auto surface = new CartesianSurface;
+        surface.setHeader(2, 2, 0, 0, 500, 500);
+        surface.m_zd[] = 50;
+        auto result = surface + surface;
+        foreach (i; 0 .. surface.nx)
+            foreach (j; 0 .. surface.ny) {
+                assert(surface.z[i][j] == 50);
+                assert(result.z[i][j] == 100);
+            }
+
+        result = surface * surface;
+        foreach (i; 0 .. surface.nx)
+            foreach (j; 0 .. surface.ny) {
+                assert(surface.z[i][j] == 50);
+                assert(result.z[i][j] == 2500);
+            }
+        
+        result = surface - surface;
+        foreach (i; 0 .. surface.nx)
+            foreach (j; 0 .. surface.ny) {
+                assert(surface.z[i][j] == 50);
+                assert(result.z[i][j] == 0);
+            }
+        
+        result = surface / surface;
+        foreach (i; 0 .. surface.nx)
+            foreach (j; 0 .. surface.ny) {
+                assert(surface.z[i][j] == 50);
+                assert(result.z[i][j] == 1);
+            }
     }
 
     /// Operators +=, -=, *=, /= overloading for a surface and a fixed value
@@ -348,7 +381,7 @@ class CartesianSurface  {
         else static if (op == "-")
             result -= rhs;
         else static if (op == "*")
-            result *= result;
+            result *= rhs;
         else static if (op == "/")
             result /= rhs;
         else static assert(0, "Operator "~op~" not implemented");
@@ -359,30 +392,38 @@ class CartesianSurface  {
         auto surface = new CartesianSurface;
         surface.setHeader(2, 2, 0, 0, 500, 500);
         surface.m_zd[] = 50;
-        surface += 10;
-        for (int i = 0; i < surface.nx; i++)
-            for (int j = 0; j < surface.ny; j++)
-                assert(surface.z[i][j] == 60);
+        auto result = surface + 10;
+        foreach (i; 0 .. surface.nx)
+            foreach (j; 0 .. surface.ny) {
+                assert(surface.z[i][j] == 50);
+                assert(result.z[i][j] == 60);
+            }
         
-        surface -= 20;
-        for (int i = 0; i < surface.nx; i++)
-            for (int j = 0; j < surface.ny; j++)
-                assert(surface.z[i][j] == 40);
+        result = surface - 20;
+        foreach (i; 0 .. surface.nx)
+            foreach (j; 0 .. surface.ny) {
+                assert(surface.z[i][j] == 50);
+                assert(result.z[i][j] == 30);
+            }
 
-        surface *= 2.5;
-        for (int i = 0; i < surface.nx; i++)
-            for (int j = 0; j < surface.ny; j++)
-                assert(surface.z[i][j] == 100);
+        result = surface * 2.5;
+        foreach (i; 0 .. surface.nx)
+            foreach (j; 0 .. surface.ny) {
+                assert(surface.z[i][j] == 50);
+                assert(result.z[i][j] == 125);
+            }
 
-        surface /= 10;
-        for (int i = 0; i < surface.nx; i++)
-            for (int j = 0; j < surface.ny; j++)
-                assert(surface.z[i][j] == 10);
+        result = surface / 5;
+        foreach (i; 0 .. surface.nx)
+            foreach (j; 0 .. surface.ny) {
+                assert(surface.z[i][j] == 50);
+                assert(result.z[i][j] == 10);
+            }
     }
     
 private:
     double[] m_zd;           /// dense representation of Z values of the surface
-    Chunks!(double[]) m_z;   /// Z chunks
+    double[][] m_z;   /// Z chunks
     double m_xOrigin;
     double m_yOrigin;
     double m_dx;
@@ -395,8 +436,8 @@ private:
 * Samples height map to `surface` using height map from the given `source`
 */
 void sampleFromSurface(CartesianSurface surface, CartesianSurface source) {
-    for (int i = 0; i < surface.nx; i++) {
-        for (int j = 0; j < surface.ny; j++) {
+    foreach (i; 0 .. surface.nx) {
+        foreach (j; 0 .. surface.ny) {
             surface.z[i][j] = source.getZ(surface.xOrigin + i * surface.dx, surface.yOrigin + j * surface.dy);
         }
     }

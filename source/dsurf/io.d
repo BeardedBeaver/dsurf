@@ -407,7 +407,6 @@ unittest {
  *   format = format to save surface to. Currently supported formats for export are: CPS3 ASCII (`cps`) and ZMap+ (`zmap`)
  */
 void saveToFile(CartesianSurface surface, string fileName, string format) {
-        saveToCps3Ascii(surface, fileName);
     if (format.startsWith("cps".toLower)) 
         saveToCps3Ascii(surface, fileName);
     else if (format.startsWith("zmap".toLower))
@@ -523,8 +522,8 @@ unittest {
     assert(surface1.xOrigin == surface2.xOrigin);
     assert(surface1.yOrigin == surface2.yOrigin);
     
-    for (int i = 0; i < surface1.nx; i++) {
-        for (int j = 0; j < surface1.ny; j++) {
+    foreach (i; 0..surface1.nx) {
+        foreach (j; 0..surface1.ny) {
             assert(surface1.z[i][j] == surface2.z[i][j]);
         }
     }
@@ -547,8 +546,8 @@ void saveToIrapClassicAscii(CartesianSurface surface, string fileName) {
                 0, " ", 0, " ", 0, " ", 0, "\n");
     file.write("    ");
     int n = 0;
-    for (int j = 0; j < surface.ny; j++) {
-        for (int i = 0; i < surface.nx; i++) {
+    foreach (j; 0 .. surface.ny) {
+        foreach (i; 0..surface.nx) {
             file.write(surface.z[i][j]);
             n++;
             if (n % 6 == 0)
@@ -577,8 +576,8 @@ unittest {
     assert(surface1.xOrigin == surface2.xOrigin);
     assert(surface1.yOrigin == surface2.yOrigin);
     
-    for (int i = 0; i < surface1.nx; i++) {
-        for (int j = 0; j < surface1.ny; j++) {
+    foreach (i; 0..surface1.nx) {
+        foreach (j; 0 .. surface1.ny) {
             assert(surface1.z[i][j] == surface2.z[i][j]);
         }
     }

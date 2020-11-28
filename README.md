@@ -1,5 +1,7 @@
 # dsurf
 
+![D](https://github.com/BeardedBeaver/dsurf/workflows/D/badge.svg)
+
 Library for D programming language that provides tools to work with surfaces (2D grids)
 -----------
 

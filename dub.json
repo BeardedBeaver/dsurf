@@ -6,7 +6,7 @@
 	"dependencies": {
 		
 	},
-	"copyright": "Copyright © 2019, Dmitriy Linev",
+	"copyright": "Copyright © 2019-2021, Dmitriy Linev",
 	"description": "Library for D programming language that provides tools to work with surfaces (2D grids)",
 	"license": "MIT",
 	"name": "dsurf"

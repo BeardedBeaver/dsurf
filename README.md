@@ -1,9 +1,10 @@
 # dsurf
 
-![D](https://github.com/BeardedBeaver/dsurf/workflows/D/badge.svg)
 
 Library for D programming language that provides tools to work with surfaces (2D grids)
 -----------
+
+![D](https://github.com/BeardedBeaver/dsurf/workflows/Build/badge.svg) ![D](https://github.com/BeardedBeaver/dsurf/workflows/Unittest/badge.svg)
 
 Simple library for D to deal with surfaces (2D grids). Regular cartesian-cell 2D grids currently are supported. 
 

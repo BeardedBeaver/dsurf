@@ -15,8 +15,8 @@ unittest {
     import std.random: unpredictableSeed;
 
     auto rnd = Random(unpredictableSeed);
-    for (int i = 0; i < surface.nx; i++) {
-        for (int j = 0; j < surface.ny; j++) {
+    foreach(i; 0 .. surface.nx) {
+        foreach(j; 0 .. surface.ny) {
             surface.z[i][j] = uniform(-50.0f, 50.0f, rnd);
         }
     }

@@ -25,8 +25,8 @@ class Cps3Saver : CartesianSurfaceSaver
         file.writeln("FSNROW ", surface.ny, " ", surface.nx);
         file.writeln("FSXINC ", surface.dx, " ", surface.dy);
         int n = 0;
-        for (int i = 0; i < surface.nx; i++) {
-            for (int j = surface.ny - 1; j >= 0; j--) {
+        foreach (i; 0 .. surface.nx) {
+            foreach_reverse(j; 0 .. surface.ny) {
                 if (isNaN(surface.z[i][j]))
                     file.write(blank);
                 else

@@ -35,8 +35,8 @@ class ZmapSaver : CartesianSurfaceSaver
         file.writeln("     " ~ "0.00, 0.00, 0.00"); //transform apparently
         file.writeln("@");    //start of an actual data
         int n = 0;
-        for (int i = 0; i < surface.nx; i++) {
-            for (int j = surface.ny - 1; j >= 0; j--) {
+        foreach(i; 0 .. surface.nx) {
+            foreach_reverse(j; 0 .. surface.ny) {
                 if (isNaN(surface.z[i][j]))
                     file.write(blank);
                 else

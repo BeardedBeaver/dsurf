@@ -21,7 +21,7 @@ class IrapSaver : CartesianSurfaceSaver
         file.write("    ");
         int n = 0;
         foreach (j; 0 .. surface.ny) {
-            foreach (i; 0..surface.nx) {
+            foreach (i; 0 .. surface.nx) {
                 file.write(surface.z[i][j]);
                 n++;
                 if (n % 6 == 0)

@@ -35,7 +35,7 @@ double gY(CartesianSurface surface, int i, int j) {
 CartesianSurface buildGradientXMap(CartesianSurface surface) {
     CartesianSurface gradient = new CartesianSurface(surface);
     foreach (i; taskPool.parallel(iota(surface.nx))) {
-        foreach (j; 0..surface.ny) {
+        foreach (j; 0 .. surface.ny) {
             gradient.z[i][j] = surface.gX(i, j);
         }
     }
@@ -46,7 +46,7 @@ CartesianSurface buildGradientXMap(CartesianSurface surface) {
 CartesianSurface buildGradientYMap(CartesianSurface surface) {
     CartesianSurface gradient = new CartesianSurface(surface);
     foreach (i; taskPool.parallel(iota(surface.nx))) {
-        foreach (j; 0..surface.ny) {
+        foreach (j; 0 .. surface.ny) {
             gradient.z[i][j] = surface.gY(i, j);
         }
     }
@@ -66,7 +66,7 @@ double dipAngle(CartesianSurface surface, int i, int j) {
 CartesianSurface buildDipAngle(CartesianSurface surface) {
     CartesianSurface result = new CartesianSurface(surface);
     foreach (i; taskPool.parallel(iota(surface.nx))) {
-        foreach (j; 0..surface.ny) {
+        foreach (j; 0 .. surface.ny) {
             result.z[i][j] = surface.dipAngle(i, j);
         }
     }

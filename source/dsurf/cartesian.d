@@ -200,8 +200,8 @@ class CartesianSurface  {
 
     /// Operators +=, -=, *=, /= overloading for two surfaces
     CartesianSurface opOpAssign(string op)(CartesianSurface rhs) {
-        for (int i = 0; i < m_nx; i++) {
-            for (int j = 0; j < m_ny; j++) {
+        foreach(i; 0 .. m_nx) {
+            foreach(j; 0 .. m_ny) {
                 immutable double x = m_xOrigin + i * dx;
                 immutable double y = m_yOrigin + j * dy;
                 immutable double rhsz = rhs.getZ(x, y);

@@ -35,8 +35,8 @@ unittest {
     import std.random: unpredictableSeed;
 
     auto rnd = Random(unpredictableSeed);
-    foreach(i; 0..surface.nx) {
-        foreach(j; 0..surface.ny) {
+    foreach(i; 0 .. surface.nx) {
+        foreach(j; 0 .. surface.ny) {
             surface.z[i][j] = uniform(-50.0f, 50.0f, rnd);
         }
     }
@@ -65,8 +65,8 @@ unittest {
         assert(isClose(surface.dx, loadedSurface.dx));
         assert(isClose(surface.dy, loadedSurface.dy));
 
-        foreach(i; 0..surface.nx) {
-            foreach(j; 0..surface.ny) {
+        foreach(i; 0 .. surface.nx) {
+            foreach(j; 0 .. surface.ny) {
                 assert(isClose(surface.z[i][j], loadedSurface.z[i][j], 1e-5)); 
                 // TODO we're comparing with the relative diff of a 1e-5
                 // Check how it can be improved

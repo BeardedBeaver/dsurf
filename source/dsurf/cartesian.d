@@ -10,7 +10,7 @@ import std.math;
 * Class CartesianSurface represents regular rectangular-cell surface
 * Authors: Dmitriy Linev
 * License: MIT
-* Date: 2019-2020
+* Date: 2019-2021
 */
 class CartesianSurface  {
 
@@ -37,6 +37,8 @@ class CartesianSurface  {
      *   dy = surface increment (cell size) along Y coordinate
      */
     void setHeader(int nx, int ny, double xOrigin, double yOrigin, double dx, double dy) pure  {
+        if (nx <= 0 || ny <= 0)
+            throw new Exception("How do we suppose to set negative size of the surface?");
         m_nx = nx;
         m_ny = ny;
         m_xOrigin = xOrigin;
@@ -47,13 +49,13 @@ class CartesianSurface  {
         m_z = m_zd.chunks(m_ny).array;
     }
 
-    unittest {
-        auto surface = new CartesianSurface;
-        surface.setHeader(2, 2, 0, 0, 500, 500);
-        surface.m_zd[] = 50;
-        foreach(i; 0 .. surface.nx)
-            foreach(j; 0 .. surface.ny)
-                assert(surface.z[i][j] == 50);
+    /**
+     * Assigns each surface note to a constant height value
+     * Params:
+     *   z = height  
+     */
+    void assignConstant(double z) {
+        m_zd[] = z;
     }
 
     /// Copy constructor, returns the exact copy of the given surface
@@ -62,30 +64,7 @@ class CartesianSurface  {
         this.m_zd[] = surface.m_zd[];
     }
 
-    unittest {
-        auto surface = new CartesianSurface;
-        surface.setHeader(2, 2, 0, 0, 500, 500);
-        foreach(i; 0 .. surface.nx)
-            foreach(j; 0 .. surface.ny)
-                surface.z[i][j] = 50;
-
-        auto s2 = new CartesianSurface(surface);
-        foreach(i; 0 .. surface.nx)
-            foreach(j; 0 .. surface.ny)
-                assert(s2.z[i][j] == 50);
-
-        foreach(i; 0 .. surface.nx)
-            foreach(j; 0 .. surface.ny)
-                s2.z[i][j] = 10;
-
-        foreach(i; 0 .. surface.nx)
-            foreach(j; 0 .. surface.ny)
-                assert(s2.z[i][j] == 10);
-
-        foreach(i; 0 .. surface.nx)
-            foreach(j; 0 .. surface.ny)
-                assert(surface.z[i][j] == 50);
-    }
+    
 
     /// Returns X coordinate of surface origin
     @property pure double xOrigin() const @safe @nogc { return m_xOrigin; }
@@ -146,19 +125,6 @@ class CartesianSurface  {
         if (y < m_yOrigin || y > m_yOrigin + m_dy * (m_ny - 1))
             return -1;   //TODO throw? 
         return ((y - m_yOrigin) / m_dy).to!int;
-    }
-
-    unittest {
-        auto surface = new CartesianSurface;
-        surface.setHeader(10, 10, 0, 1000, 500, 500);
-        assert(surface.cellXIndex(-1000) == -1);
-        assert(surface.cellYIndex(-1000) == -1);
-        assert(surface.cellXIndex(0) == 0);
-        assert(surface.cellYIndex(1000) == 0);
-        assert(surface.cellXIndex(550) == 1);
-        assert(surface.cellYIndex(1550) == 1);
-        assert(surface.cellXIndex(5000) == -1);
-        assert(surface.cellYIndex(6000) == -1);
     }
 
     /// Returns z value of a point with given coordinate using bilinear interpolation
@@ -222,33 +188,14 @@ class CartesianSurface  {
             (y - (m_yOrigin + j * m_dy)) / m_dy * z2;
     }
 
-    unittest {
-        import dsurf.io: loadFromCps3Ascii;
-        auto surface = new CartesianSurface;
-        surface.loadFromCps3Ascii("./test/test_pet_rect_blank.cps");
-        assert(isNaN(surface.getZ(5600, 250)));
-        assert(!isNaN(surface.getZ(5600, 800)));
-        assert(isNaN(surface.getZ(5700, 600)));
-        assert(isNaN(surface.getZ(5600, 250)));
-        assert(isNaN(surface.getZ(5850, 250)));
+    /// Returns a minimum height value in a surface 
+    double min() const {
+        return m_zd[this.m_zd.minIndex];
     }
 
-    unittest {
-        import dsurf.io: loadFromCps3Ascii;
-        auto surface = new CartesianSurface;
-        surface.loadFromCps3Ascii("./test/test_pet_sq.cps");
-        assert(surface.nx == 3);
-        assert(surface.ny == 3);
-        surface.z[1][1] = double.nan;
-        assert(isNaN(surface.getZ(5320.00, 700.00)));
-        assert(isNaN(surface.getZ(5650.00, 715.00)));
-        assert(isNaN(surface.getZ(5650.00, 300.00)));
-        assert(isNaN(surface.getZ(5315.00, 300.00)));
-
-        assert(approxEqual(surface.getZ(5120.00, 850.00), 2.42));
-        assert(approxEqual(surface.getZ(5815.00, 850.00), 6.59));
-        assert(approxEqual(surface.getZ(5800.00, 200.00), 5.20));
-        assert(approxEqual(surface.getZ(5200.00, 200.00), 1.60));
+    /// Returns a maximum height value in a surface 
+    double max() const {
+        return m_zd[this.m_zd.maxIndex];
     }
 
     /// Operators +=, -=, *=, /= overloading for two surfaces
@@ -278,38 +225,7 @@ class CartesianSurface  {
         return this;
     }
 
-    unittest {
-        auto s1 = new CartesianSurface;
-        s1.setHeader(2, 2, 0, 0, 500, 500);
-        foreach (i; 0 .. s1.nx)
-            foreach (j; 0 .. s1.ny)
-                s1.z[i][j] = 50;
-
-        auto s2 = new CartesianSurface(s1);
-        foreach (i; 0 .. s1.nx)
-            foreach (j; 0 .. s1.ny)
-                s2.m_zd [] = 10;
-
-        s1 /= s2;
-        foreach (i; 0 .. s1.nx)
-            foreach (j; 0 .. s1.ny) 
-                assert(s1.z[i][j] == 5);
-
-        s1 += s2;
-        foreach (i; 0 .. s1.nx)
-            foreach (j; 0 .. s1.ny)
-                assert(s1.z[i][j] == 15);
-
-        s1 *= s2;
-        foreach (i; 0 .. s1.nx)
-            foreach (j; 0 .. s1.ny) 
-                assert(s1.z[i][j] == 150);
-
-        s1 -= s2;
-        foreach (i; 0 .. s1.nx)
-            foreach (j; 0 .. s1.ny)
-                assert(s1.z[i][j] == 140);
-    }
+    
 
     /// Operators +, -, *, / overloading for two surfaces
     CartesianSurface opBinary(string op)(CartesianSurface rhs) {
@@ -326,38 +242,7 @@ class CartesianSurface  {
         return result;
     }
 
-    unittest {
-        auto surface = new CartesianSurface;
-        surface.setHeader(2, 2, 0, 0, 500, 500);
-        surface.m_zd[] = 50;
-        auto result = surface + surface;
-        foreach (i; 0 .. surface.nx)
-            foreach (j; 0 .. surface.ny) {
-                assert(surface.z[i][j] == 50);
-                assert(result.z[i][j] == 100);
-            }
-
-        result = surface * surface;
-        foreach (i; 0 .. surface.nx)
-            foreach (j; 0 .. surface.ny) {
-                assert(surface.z[i][j] == 50);
-                assert(result.z[i][j] == 2500);
-            }
-        
-        result = surface - surface;
-        foreach (i; 0 .. surface.nx)
-            foreach (j; 0 .. surface.ny) {
-                assert(surface.z[i][j] == 50);
-                assert(result.z[i][j] == 0);
-            }
-        
-        result = surface / surface;
-        foreach (i; 0 .. surface.nx)
-            foreach (j; 0 .. surface.ny) {
-                assert(surface.z[i][j] == 50);
-                assert(result.z[i][j] == 1);
-            }
-    }
+    
 
     /// Operators +=, -=, *=, /= overloading for a surface and a fixed value
     CartesianSurface opOpAssign(string op)(double rhs) {
@@ -388,40 +273,9 @@ class CartesianSurface  {
         return result;
     }
 
-    unittest {
-        auto surface = new CartesianSurface;
-        surface.setHeader(2, 2, 0, 0, 500, 500);
-        surface.m_zd[] = 50;
-        auto result = surface + 10;
-        foreach (i; 0 .. surface.nx)
-            foreach (j; 0 .. surface.ny) {
-                assert(surface.z[i][j] == 50);
-                assert(result.z[i][j] == 60);
-            }
-        
-        result = surface - 20;
-        foreach (i; 0 .. surface.nx)
-            foreach (j; 0 .. surface.ny) {
-                assert(surface.z[i][j] == 50);
-                assert(result.z[i][j] == 30);
-            }
-
-        result = surface * 2.5;
-        foreach (i; 0 .. surface.nx)
-            foreach (j; 0 .. surface.ny) {
-                assert(surface.z[i][j] == 50);
-                assert(result.z[i][j] == 125);
-            }
-
-        result = surface / 5;
-        foreach (i; 0 .. surface.nx)
-            foreach (j; 0 .. surface.ny) {
-                assert(surface.z[i][j] == 50);
-                assert(result.z[i][j] == 10);
-            }
-    }
+   
     
-private:
+package:
     double[] m_zd;           /// dense representation of Z values of the surface
     double[][] m_z;   /// Z chunks
     double m_xOrigin;
@@ -455,48 +309,6 @@ CartesianSurface translate(CartesianSurface surface, double dx, double dy) {
     surface.m_xOrigin += dx;
     surface.m_yOrigin += dy;
     return surface;
-}
-
-/** 
- * Scales the given surface around its origin point
- * Params:
- *   surface = surface to scale
- *   xf = scale factor along X direction
- *   xf = scale factor value along Y direction
- * Returns: translated surface for more convenient call chaining
- */
-CartesianSurface scale(CartesianSurface surface, double xf, double yf) {  //scales around origin point
-    //TODO filter negative factors
-    surface.m_dx *= xf;
-    surface.m_dy *= yf;
-    return surface;
-}
-
-/** 
- * Normalizes the given surface (minimum value will be 0, maximum value will be 1)
- * Doesn`t alter surface limits and origin point
- * Case of equal min and max is not controlled (division by zero will occur)
- * Params:
- *   surface = surface to normalize
- * Returns: Normalized surface for more convenient call chaining
- */
-CartesianSurface normalize(CartesianSurface surface) {
-    immutable double zmax = surface.m_zd[surface.m_zd.maxIndex];
-    immutable double zmin = surface.m_zd[surface.m_zd.minIndex];
-    surface.m_zd[] -= zmin;
-    surface.m_zd[] /= (zmax - zmin);
-    return surface;
-}
-
-unittest {
-    import dsurf.io: loadFromFile;
-    auto surface = new CartesianSurface;
-    surface.loadFromFile("./test/test_rms_sq.cps");
-    surface.normalize();
-    immutable double zmax = surface.m_zd[surface.m_zd.maxIndex];
-    immutable double zmin = surface.m_zd[surface.m_zd.minIndex];
-    assert(zmax == 1);
-    assert(zmin == 0);
 }
 
 //TODO flipAnlogI/flipAlongJ

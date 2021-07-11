@@ -1,6 +1,5 @@
 module dsurf.algoritm;
 
-
 import std.math;
 import std.range;
 import std.parallelism;
@@ -72,4 +71,35 @@ CartesianSurface buildDipAngle(CartesianSurface surface) {
         }
     }
     return result;
+}
+
+/** 
+ * Scales the given surface around its origin point
+ * Params:
+ *   surface = surface to scale
+ *   xf = scale factor along X direction
+ *   xf = scale factor value along Y direction
+ * Returns: translated surface for more convenient call chaining
+ */
+CartesianSurface scale(CartesianSurface surface, double xf, double yf) {  //scales around origin point
+    //TODO filter negative factors
+    surface.m_dx *= xf;
+    surface.m_dy *= yf;
+    return surface;
+}
+
+/** 
+ * Normalizes the given surface (minimum value will be 0, maximum value will be 1)
+ * Doesn`t alter surface limits and origin point
+ * Case of equal min and max is not controlled (division by zero will occur)
+ * Params:
+ *   surface = surface to normalize
+ * Returns: Normalized surface for more convenient call chaining
+ */
+CartesianSurface normalize(CartesianSurface surface) {
+    immutable double zmax = surface.max();
+    immutable double zmin = surface.min();
+    surface -= zmin;
+    surface /= (zmax - zmin);
+    return surface;
 }
